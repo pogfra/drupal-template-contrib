@@ -1,0 +1,23 @@
+{
+  // Extensions recommandées par drupal.org :
+  // https://www.drupal.org/docs/develop/development-tools/editors-and-ides/configuring-visual-studio-code
+  "recommendations": [
+    "andrewdavidblum.drupal-smart-snippets",
+    "biati.ddev-manager",
+    "cerzat43.twigcs",
+    "dbaeumer.vscode-eslint",
+    "dbcode.dbcode",
+    "devsense.composer-php-vscode",
+    "devsense.phptools-vscode",
+    "editorconfig.editorconfig",
+    "mblode.twig-language-2",
+    "neilbrayfield.php-docblocker",
+    "sanderronde.phpstan-vscode",
+    "valeryanm.vscode-phpsab",
+    "xdebug.php-debug"
+  ],
+  // Fait doublon avec DevSense PHP Tools (diagnostics et complétion en double).
+  "unwantedRecommendations": [
+    "bmewburn.vscode-intelephense-client"
+  ]
+}

@@ -1,0 +1,20 @@
+# Configuration PHPStan du projet (code custom uniquement).
+# phpstan-drupal et les règles de dépréciation sont chargés automatiquement
+# par phpstan/extension-installer.
+#
+# Pour une configuration locale non versionnée, créer un phpstan.neon :
+#   includes:
+#     - phpstan.neon.dist
+parameters:
+  # Niveau 6 : types des paramètres, des retours et des propriétés exigés.
+  level: 6
+  paths:
+    - web/modules/custom
+    - web/themes/custom
+  # Les tableaux de Drupal (render arrays, $form, $form_state) n'ont pas de
+  # type de valeur précis : ignoré, comme dans la plupart des projets Drupal.
+  ignoreErrors:
+    - identifier: missingType.iterableValue
+      reportUnmatched: false
+  # Les phpDoc de Drupal ne sont pas toujours fiables.
+  treatPhpDocTypesAsCertain: false

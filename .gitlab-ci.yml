@@ -1,0 +1,184 @@
+# Pipeline qualité du code custom (web/modules/custom, web/themes/custom).
+#
+# Tous les jobs sont bloquants : un échec fait échouer le pipeline. Pour
+# empêcher la fusion d'une MR en échec, activer dans GitLab les branches
+# protégées (11.x, 12.x) et « Pipelines must succeed ».
+#
+# Les règles sont celles du dépôt (phpcs.xml.dist, phpstan.neon.dist,
+# phpmd.xml.dist), comme pour le hook pre-commit et VS Code.
+
+workflow:
+  rules:
+    # Pipeline de MR, ou de branche quand aucune MR n'est ouverte (pas de
+    # pipelines en double).
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+stages:
+  - build
+  - quality
+  - test
+
+variables:
+  # 8.4 sur 11.x, 8.5 sur 12.x.
+  PHP_VERSION: "8.4"
+  COMPOSER_CACHE_DIR: "$CI_PROJECT_DIR/.composer-cache"
+  COMPOSER_NO_INTERACTION: "1"
+  COMPOSER_ALLOW_SUPERUSER: "1"
+
+# Images de la CI de drupal.org : PHP, Composer, Git et extensions de Drupal.
+default:
+  image: registry.gitlab.com/drupal-infrastructure/drupalci/drupalci-environments/php-$PHP_VERSION-ubuntu-apache:production
+  interruptible: true
+
+# Fichiers qui déclenchent chaque job : un job sans fichier à analyser est
+# sauté au lieu d'échouer.
+.php-files: &php-files
+  - "web/{modules,themes}/custom/**/*.{php,module,inc,install,test,profile,theme}"
+
+.quality:
+  stage: quality
+  needs: [composer]
+
+composer:
+  stage: build
+  script:
+    - composer validate --no-check-publish
+    - composer install --no-progress
+  cache:
+    key:
+      files: [composer.lock]
+    paths: [.composer-cache/]
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - vendor/
+      - web/
+
+commits:
+  stage: quality
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    GIT_DEPTH: 0
+  script:
+    # Conventional Commits sur chaque commit de la MR, avec le hook commit-msg.
+    - |
+      status=0
+      for sha in $(git rev-list --no-merges "$CI_MERGE_REQUEST_DIFF_BASE_SHA..HEAD"); do
+        git log -1 --format=%B "$sha" > commit-msg.txt
+        echo "$(git log -1 --format='%h %s' "$sha")"
+        .githooks/commit-msg commit-msg.txt || status=1
+      done
+      exit $status
+
+phpcs:
+  extends: .quality
+  rules:
+    - exists:
+        - "web/{modules,themes}/custom/**/*.{php,module,inc,install,test,profile,theme,info,txt,md,yml}"
+  script:
+    - vendor/bin/phpcs --report-full --report-junit=phpcs-junit.xml
+  artifacts:
+    when: always
+    reports:
+      junit: phpcs-junit.xml
+
+phpmd:
+  extends: .quality
+  rules:
+    - exists: *php-files
+  script:
+    # phpmd 3 (12.x) : sous-commande analyze. phpmd 2 (11.x) : arguments
+    # positionnels, et avis de dépréciation sous PHP 8.4 à masquer.
+    - |
+      status=0
+      if vendor/bin/phpmd --version | grep -q 'PHPMD 3'; then
+        vendor/bin/phpmd analyze web/modules/custom web/themes/custom \
+          --no-progress --format text --ruleset phpmd.xml.dist \
+          --suffixes=php --suffixes=module --suffixes=inc --suffixes=install \
+          --suffixes=test --suffixes=profile --suffixes=theme \
+          --reportfile-gitlab gl-phpmd.json || status=1
+      else
+        php -d error_reporting='E_ALL & ~E_DEPRECATED' vendor/bin/phpmd \
+          web/modules/custom,web/themes/custom text phpmd.xml.dist \
+          --suffixes php,module,inc,install,test,profile,theme \
+          --reportfile-gitlab gl-phpmd.json || status=1
+      fi
+      # phpmd écrit des chemins absolus : GitLab attend des chemins relatifs
+      # au dépôt pour placer les remarques dans le diff de la MR.
+      php -r '
+        $file = "gl-phpmd.json";
+        if (!is_file($file)) { exit; }
+        $prefix = getenv("CI_PROJECT_DIR") . "/";
+        $issues = json_decode(file_get_contents($file), TRUE);
+        foreach ($issues as &$issue) {
+          $issue["location"]["path"] = str_replace($prefix, "", $issue["location"]["path"]);
+        }
+        file_put_contents($file, json_encode($issues, JSON_PRETTY_PRINT));
+      '
+      exit $status
+  artifacts:
+    when: always
+    reports:
+      codequality: gl-phpmd.json
+
+phpstan:
+  extends: .quality
+  rules:
+    - exists: *php-files
+  script:
+    # Rapport Code Quality pour la MR ; en cas d'erreur, relance au format
+    # lisible (résultats en cache) pour le journal du job.
+    - vendor/bin/phpstan analyse --no-progress --memory-limit=1G --error-format=gitlab > gl-phpstan.json
+      || { vendor/bin/phpstan analyse --no-progress --memory-limit=1G; exit 1; }
+  artifacts:
+    when: always
+    reports:
+      codequality: gl-phpstan.json
+
+twigcs:
+  extends: .quality
+  rules:
+    - exists:
+        - "web/{modules,themes}/custom/**/*.twig"
+  script:
+    - vendor/bin/twigcs web/modules/custom web/themes/custom --reporter gitlab > gl-twigcs.json
+      || { vendor/bin/twigcs web/modules/custom web/themes/custom; exit 1; }
+  artifacts:
+    when: always
+    reports:
+      codequality: gl-twigcs.json
+
+phpunit:
+  stage: test
+  needs: [composer]
+  rules:
+    - exists:
+        - "web/{modules,themes}/custom/**/tests/src/{Unit,Kernel}/**/*Test.php"
+  services:
+    - name: mariadb:11.8
+      alias: db
+  variables:
+    MARIADB_DATABASE: db
+    MARIADB_USER: db
+    MARIADB_PASSWORD: db
+    MARIADB_ROOT_PASSWORD: root
+    SIMPLETEST_DB: mysql://db:db@db/db
+  script:
+    # Tests Unit et Kernel des modules et thèmes custom (les tests
+    # Functional demandent un serveur web et un navigateur).
+    - |
+      # Le bootstrap de PHPUnit de Drupal parcourt web/profiles, absent d'un
+      # clone (dossier non versionné).
+      mkdir -p web/profiles
+      dirs=$(find web/modules/custom web/themes/custom -type d \
+        \( -path '*/tests/src/Unit' -o -path '*/tests/src/Kernel' \))
+      vendor/bin/phpunit -c web/core --log-junit phpunit-junit.xml $dirs
+  artifacts:
+    when: always
+    reports:
+      junit: phpunit-junit.xml

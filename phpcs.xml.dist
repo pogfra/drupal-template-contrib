@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="drupal-template-contrib">
+  <description>Standards de code Drupal pour le code custom.</description>
+
+  <!-- Extensions de fichiers Drupal à analyser. -->
+  <arg name="extensions" value="php,module,inc,install,test,profile,theme,info,txt,md,yml"/>
+  <arg name="colors"/>
+  <arg value="sp"/>
+
+  <!-- Code custom uniquement (pas core ni contrib). -->
+  <file>web/modules/custom</file>
+  <file>web/themes/custom</file>
+
+  <exclude-pattern>*/node_modules/*</exclude-pattern>
+  <exclude-pattern>*/vendor/*</exclude-pattern>
+
+  <rule ref="Drupal"/>
+  <rule ref="DrupalPractice"/>
+
+  <!-- PSR-12 et Slevomat compatibles Drupal, et sniffs du projet
+       (voir phpcs/Local/ruleset.xml). -->
+  <rule ref="./phpcs/Local"/>
+</ruleset>

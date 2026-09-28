@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="Local">
+  <description>Règles ajoutées à Drupal et DrupalPractice : PSR-12, Slevomat et sniffs du projet.</description>
+
+  <!--
+    PSR-12, sauf ce qui contredit les standards Drupal.
+    Les exclusions sont faites ici et non dans phpcs.xml.dist : une exclusion
+    de sniff ne s'applique qu'au ruleset qui la déclare, elle ne retire donc
+    rien au standard Drupal.
+  -->
+  <rule ref="PSR12">
+    <!-- Indentation à 4 espaces : Drupal.WhiteSpace.ScopeIndent (2 espaces). -->
+    <exclude name="Generic.WhiteSpace.ScopeIndent"/>
+    <!-- Limite à 120 caractères : Drupal.Files.LineLength (80, commentaires). -->
+    <exclude name="Generic.Files.LineLength"/>
+    <!-- true/false/null : Drupal impose TRUE/FALSE/NULL. -->
+    <exclude name="Generic.PHP.LowerCaseConstant"/>
+    <!-- "} else {" : Drupal impose "else" sur sa propre ligne. -->
+    <exclude name="Squiz.ControlStructures.ControlSignature"/>
+    <!-- Accolade de fonction à la ligne : Drupal la veut sur la même ligne. -->
+    <exclude name="Squiz.Functions.MultiLineFunctionDeclaration"/>
+    <!-- Accolade de classe à la ligne et pas de ligne vide avant "}" :
+         Drupal veut l'inverse. -->
+    <exclude name="PSR2.Classes.ClassDeclaration"/>
+    <!-- Pas de ligne vide après "{" de classe : Drupal en impose une. -->
+    <exclude name="PSR12.Classes.OpeningBraceSpace"/>
+    <!-- Pas de ligne vide autour des "use Trait;" en début et fin de classe :
+         Drupal en impose une. Slevomat Classes.TraitUseSpacing vérifie
+         l'espacement des traits de façon compatible. -->
+    <exclude name="PSR12.Traits.UseDeclaration"/>
+    <!-- Pas de ligne vide avant "}" de classe anonyme : Drupal en impose une
+         (Squiz.WhiteSpace.FunctionSpacing.AfterLast). -->
+    <exclude name="PSR12.Classes.AnonClassDeclaration.CloseBraceAfterBody"/>
+    <!-- "{}" sur une ligne : autorisé par Drupal.WhiteSpace.ScopeClosingBrace. -->
+    <exclude name="Squiz.WhiteSpace.ScopeClosingBrace"/>
+  </rule>
+
+  <!-- Indentation Drupal (2 espaces) pour les sniffs PSR-12 qui la vérifient. -->
+  <rule ref="PSR2.Methods.FunctionCallSignature">
+    <properties>
+      <property name="indent" value="2"/>
+    </properties>
+  </rule>
+  <rule ref="PSR12.Classes.AnonClassDeclaration">
+    <properties>
+      <property name="indent" value="2"/>
+    </properties>
+  </rule>
+
+  <!-- Conditions sur plusieurs lignes : une condition par ligne, opérateur
+       booléen en fin de ligne, parenthèse fermante seule sur sa ligne. -->
+  <rule ref="PSR12.ControlStructures.ControlStructureSpacing">
+    <properties>
+      <property name="indent" value="2"/>
+    </properties>
+  </rule>
+  <rule ref="PSR12.ControlStructures.BooleanOperatorPlacement">
+    <properties>
+      <property name="allowOnly" value="last"/>
+    </properties>
+  </rule>
+
+  <!--
+    Slevomat en entier, sauf :
+    - une règle de chaque paire contradictoire (Require* / Disallow*) ;
+    - les règles qui contredisent les standards Drupal ;
+    - les règles impossibles à respecter avec l'API Drupal ;
+    - les règles qui demandent une configuration propre à chaque module.
+  -->
+  <rule ref="SlevomatCodingStandard">
+    <!-- Paires contradictoires : on garde la variante utilisée par Drupal. -->
+    <exclude name="SlevomatCodingStandard.ControlStructures.RequireYodaComparison"/>
+    <exclude name="SlevomatCodingStandard.ControlStructures.DisallowShortTernaryOperator"/>
+    <exclude name="SlevomatCodingStandard.ControlStructures.NewWithoutParentheses"/>
+    <exclude name="SlevomatCodingStandard.ControlStructures.DisallowNullSafeObjectOperator"/>
+    <exclude name="SlevomatCodingStandard.Classes.DisallowConstructorPropertyPromotion"/>
+    <exclude name="SlevomatCodingStandard.Exceptions.DisallowNonCapturingCatch"/>
+    <exclude name="SlevomatCodingStandard.Functions.DisallowArrowFunction"/>
+    <exclude name="SlevomatCodingStandard.Functions.DisallowTrailingCommaInCall"/>
+    <exclude name="SlevomatCodingStandard.Functions.DisallowTrailingCommaInClosureUse"/>
+    <exclude name="SlevomatCodingStandard.Functions.DisallowTrailingCommaInDeclaration"/>
+    <exclude name="SlevomatCodingStandard.Numbers.DisallowNumericLiteralSeparator"/>
+    <!-- "\count()", "\PHP_EOL" et "\SomeException" en code : Drupal référence
+         les fonctions et constantes globales sans "\" et les classes
+         namespacées via "use" (Drupal.Classes.FullyQualifiedNamespace). -->
+    <exclude name="SlevomatCodingStandard.Namespaces.FullyQualifiedGlobalFunctions"/>
+    <exclude name="SlevomatCodingStandard.Namespaces.FullyQualifiedGlobalConstants"/>
+    <exclude name="SlevomatCodingStandard.Namespaces.FullyQualifiedExceptions"/>
+    <!-- "use" obligatoire : Drupal.Classes.FullyQualifiedNamespace l'impose
+         déjà, et les deux correcteurs ajoutent leurs "use" différemment,
+         phpcbf boucle. -->
+    <exclude name="SlevomatCodingStandard.Namespaces.ReferenceUsedNamesOnly"/>
+
+    <!-- Contraires aux standards Drupal. -->
+    <!-- Pas de limite de longueur pour le code (Drupal.Files.LineLength). -->
+    <exclude name="SlevomatCodingStandard.Files.LineLength"/>
+    <!-- Impose {@inheritDoc} : Drupal impose {@inheritdoc}. -->
+    <exclude name="SlevomatCodingStandard.Commenting.AnnotationName"/>
+    <!-- Signale {@inheritdoc} comme inutile : Drupal l'impose. -->
+    <exclude name="SlevomatCodingStandard.Commenting.UselessInheritDocComment"/>
+    <!-- Docblocks sur une ligne : Drupal les veut sur plusieurs lignes. -->
+    <exclude name="SlevomatCodingStandard.Commenting.RequireOneLineDocComment"/>
+    <exclude name="SlevomatCodingStandard.Commenting.RequireOneLinePropertyDocComment"/>
+    <!-- Interdit les suffixes Interface, Trait, Exception : Drupal les impose. -->
+    <exclude name="SlevomatCodingStandard.Classes.SuperfluousInterfaceNaming"/>
+    <exclude name="SlevomatCodingStandard.Classes.SuperfluousTraitNaming"/>
+    <exclude name="SlevomatCodingStandard.Classes.SuperfluousExceptionNaming"/>
+    <!-- Interdit "string[]" : c'est la syntaxe des docblocks Drupal. -->
+    <exclude name="SlevomatCodingStandard.TypeHints.DisallowArrayTypeHintSyntax"/>
+    <!-- Signale @param, @return et @var comme inutiles quand le type natif
+         existe : Drupal les impose (Drupal.Commenting.FunctionComment,
+         Drupal.Commenting.VariableComment). -->
+    <exclude name="SlevomatCodingStandard.TypeHints.ParameterTypeHint.UselessAnnotation"/>
+    <exclude name="SlevomatCodingStandard.TypeHints.ReturnTypeHint.UselessAnnotation"/>
+    <exclude name="SlevomatCodingStandard.TypeHints.PropertyTypeHint.UselessAnnotation"/>
+    <!-- Exige "array<string, mixed>" en @param / @return : Drupal interdit
+         ces annotations sur les implémentations de hook
+         (Drupal.Commenting.HookComment). Gardé pour les propriétés. -->
+    <exclude name="SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingTraversableTypeHintSpecification"/>
+    <exclude name="SlevomatCodingStandard.TypeHints.ReturnTypeHint.MissingTraversableTypeHintSpecification"/>
+    <!-- Remplace les commentaires "@var" en ligne par assert() : Drupal
+         utilise ces commentaires (Drupal.Commenting.InlineVariableComment). -->
+    <exclude name="SlevomatCodingStandard.PHP.RequireExplicitAssertion"/>
+    <!-- Trie les clés : l'ordre des clés d'un formulaire ou d'un render array
+         est l'ordre d'affichage. -->
+    <exclude name="SlevomatCodingStandard.Arrays.AlphabeticallySortedByKeys"/>
+
+    <!-- Impossibles à respecter avec l'API Drupal. -->
+    <!-- hook_form_alter(&$form), hook_*_alter(&$data)... -->
+    <exclude name="SlevomatCodingStandard.PHP.DisallowReference"/>
+    <!-- Attributs de plugin : #[Block(id: ..., admin_label: ...)]. -->
+    <exclude name="SlevomatCodingStandard.Functions.DisallowNamedArguments"/>
+    <!-- Paramètres imposés par les hooks et les interfaces. -->
+    <exclude name="SlevomatCodingStandard.Functions.UnusedParameter"/>
+    <!-- Paramètres "mixed" imposés par les interfaces de core. -->
+    <exclude name="SlevomatCodingStandard.TypeHints.DisallowMixedTypeHint"/>
+    <!-- Core n'utilise pas "final" pour permettre l'extension et les mocks. -->
+    <exclude name="SlevomatCodingStandard.Classes.RequireAbstractOrFinal"/>
+    <!-- Correction automatique "\Exception" => "\Throwable" : change ce qui
+         est intercepté (TypeError...). -->
+    <exclude name="SlevomatCodingStandard.Exceptions.ReferenceThrowableOnly"/>
+
+    <!-- Demandent une configuration par module (liste de namespaces,
+         chemin de chaque dossier src/). Squiz.Classes.ClassFileName vérifie
+         déjà la correspondance nom de classe / nom de fichier. -->
+    <exclude name="SlevomatCodingStandard.Namespaces.UseOnlyWhitelistedNamespaces"/>
+    <exclude name="SlevomatCodingStandard.Files.TypeNameMatchesFileName"/>
+
+    <!-- Ligne vide avant break/return : Drupal l'interdit à la fin d'un case
+         (Squiz.ControlStructures.SwitchDeclaration), phpcbf boucle. -->
+    <exclude name="SlevomatCodingStandard.ControlStructures.JumpStatementsSpacing"/>
+
+    <!-- Regroupe les conditions sur une ligne que les règles d'appel
+         multi-lignes redécoupent : phpcbf boucle. -->
+    <exclude name="SlevomatCodingStandard.ControlStructures.RequireSingleLineCondition"/>
+    <!-- Vide les docblocks que Drupal impose (Drupal.Commenting.FunctionComment),
+         puis Commenting.EmptyComment les supprime : phpcbf boucle. -->
+    <exclude name="SlevomatCodingStandard.Commenting.UselessFunctionDocComment"/>
+
+    <!-- Supprime le docblock vide que Drupal.Commenting.FunctionComment
+         ajoute à compléter : phpcbf boucle. Drupal.Commenting.DocComment.Empty
+         signale déjà les docblocks vides. -->
+    <exclude name="SlevomatCodingStandard.Commenting.EmptyComment"/>
+    <!-- Espacement dans les docblocks : géré par Drupal.Commenting.DocComment,
+         avec lequel il entre en conflit. -->
+    <exclude name="SlevomatCodingStandard.Commenting.DocCommentSpacing"/>
+
+    <!-- Regroupe les appels sur une ligne que PEAR.Functions.FunctionCallSignature
+         (Drupal) et Functions.RequireMultiLineCall redécoupent : phpcbf boucle. -->
+    <exclude name="SlevomatCodingStandard.Functions.RequireSingleLineCall"/>
+
+    <!-- Dépréciée, remplacée par TypeHints.DNFTypeHintFormat. -->
+    <exclude name="SlevomatCodingStandard.TypeHints.UnionTypeHintFormat"/>
+  </rule>
+
+  <!-- "declare(strict_types=1);" obligatoire (désactivé par Drupal). -->
+  <rule ref="SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing">
+    <severity>5</severity>
+  </rule>
+
+  <!-- Ligne vide autour des blocs, sauf case/default : leur espacement est
+       géré par Squiz.ControlStructures.SwitchDeclaration (Drupal). -->
+  <rule ref="SlevomatCodingStandard.ControlStructures.BlockControlStructureSpacing">
+    <properties>
+      <property name="controlStructures" type="array">
+        <element value="if"/>
+        <element value="do"/>
+        <element value="while"/>
+        <element value="for"/>
+        <element value="foreach"/>
+        <element value="switch"/>
+        <element value="try"/>
+      </property>
+    </properties>
+  </rule>
+
+  <!-- Ligne vide entre les blocs "use", "use function" et "use const",
+       comme PSR12.Files.FileHeader. -->
+  <rule ref="SlevomatCodingStandard.Namespaces.UseSpacing">
+    <properties>
+      <property name="linesCountBetweenUseTypes" value="1"/>
+    </properties>
+  </rule>
+
+  <!-- Opérateur booléen en fin de ligne, comme PSR12.BooleanOperatorPlacement. -->
+  <rule ref="SlevomatCodingStandard.ControlStructures.RequireMultiLineCondition">
+    <properties>
+      <property name="booleanOperatorOnPreviousLine" value="true"/>
+    </properties>
+  </rule>
+
+  <!-- Constructeur à propriétés promues : une propriété par ligne, comme
+       dans core. -->
+  <rule ref="SlevomatCodingStandard.Classes.RequireSingleLineMethodSignature">
+    <properties>
+      <property name="excludedMethodPatterns" type="array">
+        <element value="/^__construct$/"/>
+      </property>
+    </properties>
+  </rule>
+
+  <!-- Ordre des membres : create() juste après __construct(), comme dans core. -->
+  <rule ref="SlevomatCodingStandard.Classes.ClassStructure">
+    <properties>
+      <property name="groups" type="array">
+        <element value="uses"/>
+        <element value="enum cases"/>
+        <element value="public constants"/>
+        <element value="protected constants"/>
+        <element value="private constants"/>
+        <element value="public static properties"/>
+        <element value="protected static properties"/>
+        <element value="private static properties"/>
+        <element value="public properties"/>
+        <element value="protected properties"/>
+        <element value="private properties"/>
+        <element value="constructor"/>
+        <element value="static constructors"/>
+        <element value="destructor"/>
+        <element value="public static methods, public static final methods, public static abstract methods"/>
+        <element value="public methods, public final methods, public abstract methods"/>
+        <element value="protected static methods, protected static final methods, protected static abstract methods"/>
+        <element value="protected methods, protected final methods, protected abstract methods"/>
+        <element value="private static methods"/>
+        <element value="private methods"/>
+        <element value="magic methods"/>
+      </property>
+    </properties>
+  </rule>
+
+  <!-- Attribut sur la même ligne que sa cible autorisé :
+       "#[\SensitiveParameter] string $password". -->
+  <rule ref="SlevomatCodingStandard.Attributes.AttributeAndTargetSpacing">
+    <properties>
+      <property name="allowOnSameLine" value="true"/>
+    </properties>
+  </rule>
+
+  <rule ref="SlevomatCodingStandard.Attributes.AttributesOrder">
+    <properties>
+      <property name="orderAlphabetically" value="true"/>
+    </properties>
+  </rule>
+
+  <!-- Même configuration que core (web/core/phpcs.xml.dist). -->
+  <rule ref="SlevomatCodingStandard.Commenting.ForbiddenAnnotations">
+    <properties>
+      <property name="forbiddenAnnotations" type="array">
+        <element value="@encode"/>
+        <element value="@inheritDoc"/>
+        <element value="@inheritdoc"/>
+        <element value="@returns"/>
+      </property>
+    </properties>
+  </rule>
+</ruleset>

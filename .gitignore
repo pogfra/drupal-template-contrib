@@ -1,0 +1,47 @@
+# Dépendances installées par Composer (reconstruites par `ddev composer install`).
+/vendor/
+/web/core/
+/web/modules/contrib/
+/web/themes/contrib/
+/web/profiles/contrib/
+/web/libraries/
+/drush/Commands/contrib/
+
+# Fichiers scaffoldés à la racine par drupal/core-composer-scaffold
+# (ceux de web/ sont listés dans les .gitignore de web/, gérés par le plugin).
+/.editorconfig
+/.gitattributes
+
+# Fichiers du site (uploads, fichiers privés, config locale).
+/web/sites/*/files/
+/web/sites/*/private/
+/web/sites/*/settings.local.php
+/web/sites/*/services.local.yml
+/web/sites/simpletest/
+/private/
+
+# Node.
+node_modules/
+
+# Caches des outils qualité et des tests.
+.phpcs-cache
+.phpunit.result.cache
+.phpunit.cache/
+phpstan-tmp/
+.eslintcache
+.stylelintcache
+.cspellcache
+
+# Exécution locale du pipeline GitLab CI (gitlab-ci-local).
+/.gitlab-ci-local/
+
+# Réglages locaux non partagés.
+/phpcs.xml
+/phpstan.neon
+/phpunit.xml
+
+# Fichiers système.
+.DS_Store
+Thumbs.db
+*.swp
+*~

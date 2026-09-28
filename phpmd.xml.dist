@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Règles phpmd du projet, adaptées aux conventions Drupal.
+
+  Exclus volontairement, car en conflit avec Drupal :
+  - cleancode : StaticAccess (\Drupal:: dans le code procédural), ElseExpression,
+    BooleanArgumentFlag (courant dans les API de core) ;
+  - naming : variables en snake_case dans le code procédural, $id, $op...
+  - controversial : règles CamelCase, déjà couvertes par phpcs (Drupal).
+
+  Pour une configuration locale non versionnée, créer un phpmd.xml.
+-->
+<ruleset name="drupal-template-contrib"
+  xmlns="http://pmd.sf.net/ruleset/1.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://pmd.sf.net/ruleset/1.0.0 http://pmd.sf.net/ruleset_xml_schema.xsd"
+  xsi:noNamespaceSchemaLocation="http://pmd.sf.net/ruleset_xml_schema.xsd">
+  <description>Complexité, code mort et conception, sans les règles incompatibles avec Drupal.</description>
+
+  <!-- Les tests ont beaucoup de méthodes publiques par nature. -->
+  <exclude-pattern>*/tests/*</exclude-pattern>
+
+  <!-- Taille et complexité. Les variantes Ncss ne comptent pas les docblocks,
+       très présents dans le code Drupal. -->
+  <rule ref="rulesets/codesize.xml">
+    <exclude name="ExcessiveMethodLength"/>
+    <exclude name="ExcessiveClassLength"/>
+  </rule>
+
+  <!-- Code mort. Les paramètres inutilisés sont fréquents dans les hooks et
+       les implémentations d'interfaces, dont la signature est imposée. -->
+  <rule ref="rulesets/unusedcode.xml">
+    <exclude name="UnusedFormalParameter"/>
+  </rule>
+
+  <!-- Conception. -->
+  <rule ref="rulesets/design.xml">
+    <exclude name="DevelopmentCodeFragment"/>
+  </rule>
+  <!-- Fonctions de débogage, y compris celles de Devel. -->
+  <rule ref="rulesets/design.xml/DevelopmentCodeFragment">
+    <properties>
+      <property name="unwanted-functions" value="var_dump,print_r,debug_zval_dump,debug_print_backtrace,dump,dd,dpm,dsm,dvm,kint,ksm"/>
+    </properties>
+  </rule>
+</ruleset>

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Hook commit-msg : impose le format Conventional Commits 1.0.0.
+# https://www.conventionalcommits.org/fr/v1.0.0/
+# Activé par « make hooks ».
+
+TYPES='build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test'
+PATTERN="^($TYPES)(\([^()[:space:]]+\))?!?: [^[:space:]]"
+MAX_LENGTH=100
+
+# Retire les commentaires, la partie sous les ciseaux (git commit -v) et les
+# lignes vides du début, comme le fera git.
+msg=$(sed -e '/^# -\{24\} >8 -\{24\}$/,$d' -e '/^#/d' "$1" | sed '/./,$!d')
+header=$(printf '%s\n' "$msg" | sed -n '1p')
+
+# Message vide : git annule lui-même le commit.
+[ -z "$header" ] && exit 0
+
+# Messages générés par git (merge, revert, rebase --autosquash).
+[[ $header =~ ^(Merge |Revert \"|fixup! |squash! |amend! ) ]] && exit 0
+
+error() {
+  echo "commit-msg : $1" >&2
+  echo "  Reçu   : $header" >&2
+  echo "  Format : <type>(<portée>)?: <description>" >&2
+  echo "  Types  : ${TYPES//|/, }" >&2
+  echo "  Exemple : feat(mon_module): ajoute un bloc de recherche" >&2
+  exit 1
+}
+
+[[ $header =~ $PATTERN ]] || error "le titre ne suit pas Conventional Commits."
+[ ${#header} -le $MAX_LENGTH ] || error "le titre dépasse $MAX_LENGTH caractères (${#header})."
+second=$(printf '%s\n' "$msg" | sed -n '2p')
+[ -z "$second" ] || error "le titre doit être suivi d'une ligne vide."
+
+exit 0

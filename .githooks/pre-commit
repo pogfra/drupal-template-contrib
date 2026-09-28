@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# Hook pre-commit : phpcbf, phpcs, phpmd, PHPStan et twigcs sur les fichiers
+# indexés du code custom. Les outils tournent dans le conteneur web de DDEV.
+# Activé par « make hooks ».
+#
+# Avec --all (« make check-all ») : vérifie tout le code custom, suivi ou
+# nouveau, sans rien corriger ni indexer.
+
+export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT" || exit 1
+
+ALL=0
+[ "$1" = "--all" ] && ALL=1
+
+# Mêmes dossiers que phpcs.xml.dist et phpstan.neon.dist.
+SCOPE='^web/(modules|themes)/custom/'
+# Extensions vérifiées par phpcs (celles de phpcs.xml.dist).
+CS_EXT='\.(php|module|inc|install|test|profile|theme|info|txt|md|yml)$'
+# Extensions PHP, pour phpmd et PHPStan.
+PHP_EXT='\.(php|module|inc|install|test|profile|theme)$'
+TWIG_EXT='\.twig$'
+
+if [ $ALL -eq 1 ]; then
+  LABEL="check-all"
+  list_files() {
+    git -c core.quotePath=false ls-files --cached --others --exclude-standard \
+      -- web/modules/custom web/themes/custom
+  }
+else
+  LABEL="pre-commit"
+  list_files() {
+    git -c core.quotePath=false diff --cached --name-only --diff-filter=ACMR
+  }
+fi
+
+cs_files=()
+php_files=()
+twig_files=()
+while IFS= read -r file; do
+  [[ $file =~ $SCOPE ]] && [ -f "$file" ] || continue
+  [[ $file =~ $CS_EXT ]] && cs_files+=("$file")
+  [[ $file =~ $PHP_EXT ]] && php_files+=("$file")
+  [[ $file =~ $TWIG_EXT ]] && twig_files+=("$file")
+done < <(list_files)
+
+if [ ${#cs_files[@]} -eq 0 ] && [ ${#twig_files[@]} -eq 0 ]; then
+  [ $ALL -eq 1 ] && echo "$LABEL : aucun code custom à vérifier."
+  exit 0
+fi
+
+# Les outils lisent la copie de travail : elle doit être identique à l'index,
+# sinon on vérifierait (et réindexerait) du code non choisi pour ce commit.
+if [ $ALL -eq 0 ]; then
+  partial=$(git -c core.quotePath=false diff --name-only -- \
+    "${cs_files[@]}" "${twig_files[@]}")
+  if [ -n "$partial" ]; then
+    echo "$LABEL : fichiers indexés en partie (git add -p) :" >&2
+    sed 's/^/  /' <<< "$partial" >&2
+    echo "Indexez-les en entier, ou mettez le reste de côté :" >&2
+    echo "  git stash push --keep-index, puis git stash pop après le commit." >&2
+    exit 1
+  fi
+fi
+
+NAME=$(grep -E '^name:' .ddev/config.yaml | awk '{print $2}')
+NAME=${NAME:-$(basename "$ROOT")}
+CONTAINER="ddev-${NAME}-web"
+if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$CONTAINER"; then
+  echo "$LABEL : DDEV n'est pas démarré. Lancez « ddev start », puis recommencez." >&2
+  exit 1
+fi
+
+# Lance un outil de vendor/bin dans le conteneur, sans les avis de
+# dépréciation propres aux outils (phpmd 2.x n'est pas à jour pour PHP 8.4).
+run() {
+  docker exec -i -w /var/www/html "$CONTAINER" \
+    php -d error_reporting='E_ALL & ~E_DEPRECATED' "vendor/bin/$1" "${@:2}"
+}
+
+# Mutagen (macOS) : aligne le conteneur sur l'hôte avant l'analyse.
+ddev mutagen sync >/dev/null 2>&1
+
+status=0
+
+if [ ${#cs_files[@]} -gt 0 ]; then
+  if [ $ALL -eq 0 ]; then
+    echo "==> phpcbf"
+    # Avec phpcs 4, le code de sortie décrit ce qui reste à corriger, pas ce
+    # qui a été corrigé : seul 16 (erreur d'exécution) est traité ici.
+    run phpcbf -q "${cs_files[@]}" >/dev/null
+    [ $(( $? & 16 )) -ne 0 ] && status=1
+    # Rapatrie les corrections du conteneur, puis les réindexe.
+    ddev mutagen sync >/dev/null 2>&1
+    fixed=$(git -c core.quotePath=false diff --name-only -- "${cs_files[@]}")
+    if [ -n "$fixed" ]; then
+      echo "Corrigés et réindexés :"
+      sed 's/^/  /' <<< "$fixed"
+      git add -- "${cs_files[@]}"
+    fi
+  fi
+
+  echo "==> phpcs"
+  run phpcs -q "${cs_files[@]}" || status=1
+fi
+
+if [ ${#php_files[@]} -gt 0 ]; then
+  echo "==> phpmd"
+  # phpmd 3 (branche 12.x) a une sous-commande analyze ; phpmd 2 (11.x) prend
+  # des arguments positionnels, dépréciés en version 3.
+  if grep -A1 '"name": "phpmd/phpmd"' composer.lock | grep -q '"version": "3'; then
+    suffixes=()
+    for ext in php module inc install test profile theme; do
+      suffixes+=("--suffixes=$ext")
+    done
+    run phpmd analyze --no-progress --format text --ruleset phpmd.xml.dist \
+      "${suffixes[@]}" -- "${php_files[@]}" || status=1
+  else
+    list=$(IFS=,; echo "${php_files[*]}")
+    run phpmd "$list" text phpmd.xml.dist \
+      --suffixes php,module,inc,install,test,profile,theme || status=1
+  fi
+
+  echo "==> PHPStan"
+  run phpstan analyse --no-progress --memory-limit=1G -- "${php_files[@]}" || status=1
+fi
+
+if [ ${#twig_files[@]} -gt 0 ]; then
+  echo "==> twigcs"
+  run twigcs "${twig_files[@]}" || status=1
+fi
+
+if [ $status -ne 0 ]; then
+  echo "$LABEL : des erreurs sont à corriger (voir ci-dessus)." >&2
+fi
+exit $status

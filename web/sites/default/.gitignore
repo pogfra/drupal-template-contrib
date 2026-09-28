@@ -1,0 +1,6 @@
+# Généré par DDEV.
+/settings.ddev.php
+/drushrc.php
+# Fichiers scaffoldés par drupal/core-composer-scaffold.
+/default.services.yml
+/default.settings.php

@@ -1,0 +1,89 @@
+{
+  // Configuration Drupal basée sur :
+  // https://www.drupal.org/docs/develop/development-tools/editors-and-ides/configuring-visual-studio-code
+
+  // Extensions de fichiers PHP propres à Drupal.
+  "files.associations": {
+    "*.php": "php",
+    "*.module": "php",
+    "*.engine": "php",
+    "*.theme": "php",
+    "*.install": "php",
+    "*.inc": "php",
+    "*.make": "php",
+    "*.profile": "php",
+    "*.test": "php",
+    "*.info": "ini"
+  },
+
+  // Validation PHP native : désactivée (PHP tourne dans DDEV).
+  // Pour l'activer via le conteneur, décommenter la ligne suivante et passer "enable" à true.
+  // "php.validate.executablePath": "${workspaceFolder}/.vscode/php-ddev.sh",
+  "php.validate.enable": false,
+  "php.validate.run": "onSave",
+
+  // Standards de code Drupal via drupal/coder (phpcs/phpcbf exécutés dans DDEV).
+  // Les règles viennent de phpcs.xml.dist à la racine (sinon "phpsab.standard").
+  "phpsab.executablePathCS": ".vscode/bin/phpcs",
+  "phpsab.executablePathCBF": ".vscode/bin/phpcbf",
+  "phpsab.standard": "Drupal,DrupalPractice",
+  "phpsab.snifferEnable": true,
+  "phpsab.snifferMode": "onType",
+  "phpsab.snifferTypeDelay": 500,
+  "phpsab.snifferShowSources": true,
+  "phpsab.fixerEnable": true,
+
+  // Correction automatique (phpcbf) à l'enregistrement.
+  "[php]": {
+    "editor.defaultFormatter": "valeryanm.vscode-phpsab",
+    "editor.formatOnSave": true
+  },
+
+  // Espaces et fin de fichier (cohérent avec .editorconfig de Drupal).
+  // "onFocusChange" plutôt que "afterDelay" : avec afterDelay, VS Code ne
+  // lance pas le formatage à l'enregistrement automatique.
+  "files.autoSave": "onFocusChange",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.eol": "\n",
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.rulers": [80],
+  "editor.renderWhitespace": "boundary",
+  "diffEditor.ignoreTrimWhitespace": false,
+
+  // Twig.
+  "emmet.includeLanguages": {
+    "twig": "html"
+  },
+  // Chemin absolu obligatoire : l'extension n'utilise pas le dossier du projet.
+  "twigcs.executablePath": "/Users/pog/Workstation/drupal-template-contrib/.vscode/bin/twigcs",
+
+  // PHPStan exécuté dans le conteneur web DDEV (règles de phpstan.neon.dist).
+  // Chemins absolus obligatoires : l'extension ne substitue pas ${workspaceFolder}.
+  "phpstan.dockerContainerName": "ddev-drupal-template-contrib-web",
+  "phpstan.paths": {
+    "/Users/pog/Workstation/drupal-template-contrib": "/var/www/html"
+  },
+
+  // JavaScript : formatage via ESLint (config de core).
+  "eslint.format.enable": true,
+  "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+
+  // Éviter d'indexer / surveiller les dossiers volumineux ou générés.
+  "files.watcherExclude": {
+    "**/.ddev/**": true,
+    "**/node_modules/**": true,
+    "**/web/sites/*/files/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/web/sites/*/files": true
+  },
+  "intelephense.environment.phpVersion": "8.4",
+  "php.version": "8.4"
+}
