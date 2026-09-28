@@ -14,12 +14,13 @@ Ce que le dépôt met en place :
 
 | Élément | Version |
 |---|---|
-| Drupal core | 11.x-dev (`drupal/recommended-project`) |
-| PHP | 8.4 (conteneur DDEV) |
+| Drupal core | 12.x-dev (`drupal/recommended-project`) |
+| PHP | 8.5 (conteneur DDEV) |
 | Base de données | MariaDB 11.8 |
 | Serveur web | nginx-fpm |
 | Node.js | 24 (conteneur DDEV) |
-| Drush | 13 |
+| Drush | 14.x-dev |
+| Olivero, Claro | Projets contrib (retirés du cœur dans Drupal 12) |
 
 ## Branches
 
@@ -91,7 +92,7 @@ make install
 `make install` se relance autant de fois que voulu : chaque exécution **supprime la base** et réinstalle Drupal de zéro.
 Pour seulement réinstaller Drupal, sans redémarrer DDEV ni relancer Composer : `make drupal-reinstall`.
 
-> Le profil `standard` de Drupal 11.x-dev utilise `/admin/welcome` comme page d'accueil, réservée aux utilisateurs connectés.
+> Le profil `standard` de Drupal 12.x-dev utilise `/admin/welcome` comme page d'accueil, réservée aux utilisateurs connectés.
 > C'est pourquoi `make install` ouvre le site avec un lien de connexion plutôt qu'en anonyme.
 
 ### Commandes make
